@@ -14,7 +14,7 @@ A modern web application that transforms your task list into organized, actionab
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://your-app-name.herokuapp.com)
+[View Live Demo]([https://your-app-name.herokuapp.com](https://web-production-6dad0.up.railway.app/))
 
 ## 🛠️ Technologies Used
 
@@ -72,41 +72,9 @@ The application will be available at `http://localhost:5000`
 
 ## 🌐 Deployment
 
-### Option 1: Heroku
 
-1. **Install Heroku CLI**
 
-   ```bash
-   # Download from https://devcenter.heroku.com/articles/heroku-cli
-   ```
-
-2. **Login to Heroku**
-
-   ```bash
-   heroku login
-   ```
-
-3. **Create Heroku App**
-
-   ```bash
-   heroku create your-app-name
-   ```
-
-4. **Set Environment Variables**
-
-   ```bash
-   heroku config:set TOGETHER_API_KEY=your_api_key_here
-   heroku config:set FLASK_SECRET_KEY=your_secret_key_here
-   ```
-
-5. **Deploy**
-   ```bash
-   git add .
-   git commit -m "Initial deployment"
-   git push heroku main
-   ```
-
-### Option 2: Railway
+### Option 1: Railway
 
 1. **Connect GitHub Repository**
 
@@ -121,20 +89,6 @@ The application will be available at `http://localhost:5000`
 3. **Deploy**
    - Railway will automatically deploy your app
 
-### Option 3: Render
-
-1. **Create Render Account**
-
-   - Sign up at [Render](https://render.com)
-
-2. **Create New Web Service**
-
-   - Connect your GitHub repository
-   - Set build command: `pip install -r requirements.txt`
-   - Set start command: `gunicorn app:app`
-
-3. **Set Environment Variables**
-   - Add your API keys in the environment section
 
 ## 🔑 API Keys Setup
 
