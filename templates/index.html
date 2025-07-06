@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Summary Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      /* Example dark mode styles */
+      body.dark {
+        background-color: #121212;
+        color: #eee;
+      }
+
+      /* Adjust toggle container */
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 1rem;
+      }
+
+      /* Optional styling for label text */
+      .toggle-label {
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toggle-container">
+      <label class="switch" for="darkToggle">
+        <input type="checkbox" id="darkToggle" />
+        <span class="slider round"></span>
+      </label>
+      <span id="toggleLabel" class="toggle-label">Dark Mode</span>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <h1>Task Summary Generator</h1>
+        <p>Transform your task list into organized, actionable summaries</p>
+      </div>
+
+      <div class="card">
+        <form method="POST">
+          <div class="form-group">
+            <textarea
+              id="tasks"
+              name="tasks"
+              placeholder="Enter your task list in English or Bangla..."
+            >
+{{ tasks }}</textarea
+            >
+          </div>
+
+          <div class="btn-group">
+            <button
+              type="submit"
+              name="action"
+              value="default"
+              class="btn btn-primary"
+            >
+              📋 Summarize (Default)
+            </button>
+            <button
+              type="submit"
+              name="action"
+              value="detailed"
+              class="btn btn-secondary"
+            >
+              📊 Detailed Summary
+            </button>
+            <button
+              type="submit"
+              name="action"
+              value="brief"
+              class="btn btn-outline"
+            >
+              ⚡ Brief & Prioritized
+            </button>
+          </div>
+        </form>
+
+        <button onclick="startDictation()" class="btn btn-outline">
+          🎙 Speak
+        </button>
+      </div>
+
+      {% if summary %}
+      <div class="card summary-section">
+        <h2>{{ action_type }}</h2>
+        <pre class="highlighted-summary" id="summary">{{ summary | safe }}</pre>
+
+        <div class="btn-group">
+          <button onclick="copyText()" class="btn btn-primary">📋 Copy</button>
+          <a href="{{ url_for('download_pdf') }}" class="btn btn-secondary">
+            📄 Download PDF
+          </a>
+          <button
+            id="translateBtn"
+            onclick="toggleTranslation()"
+            class="btn btn-outline"
+          >
+            🌐 Translate to Bangla
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      <div id="loading" style="display: none">⏳ Processing...</div>
+    </div>
+
+    <script>
+      function startDictation() {
+        // Check if speech recognition is supported
+        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+          alert(
+            "Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari."
+          );
+          return;
+        }
+
+        const recognition = new (window.SpeechRecognition ||
+          window.webkitSpeechRecognition)();
+        const speakButton = document.querySelector(
+          'button[onclick="startDictation()"]'
+        );
+        const tasksTextarea = document.getElementById("tasks");
+
+        // Configure recognition
+        recognition.lang = "en-US";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        // Update button to show listening state
+        speakButton.textContent = "🎙 Listening...";
+        speakButton.disabled = true;
+
+        recognition.onstart = () => {
+          console.log("Speech recognition started");
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          tasksTextarea.value = transcript;
+          console.log("Transcript:", transcript);
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+          let errorMessage = "Speech recognition failed.";
+
+          switch (event.error) {
+            case "no-speech":
+              errorMessage = "No speech detected. Please try again.";
+              break;
+            case "audio-capture":
+              errorMessage =
+                "Microphone access denied. Please allow microphone access.";
+              break;
+            case "not-allowed":
+              errorMessage =
+                "Microphone access denied. Please allow microphone access.";
+              break;
+            case "network":
+              errorMessage = "Network error. Please check your connection.";
+              break;
+            default:
+              errorMessage = "Speech recognition failed. Please try again.";
+          }
+
+          alert(errorMessage);
+          speakButton.textContent = "🎙 Speak";
+          speakButton.disabled = false;
+        };
+
+        recognition.onend = () => {
+          console.log("Speech recognition ended");
+          speakButton.textContent = "🎙 Speak";
+          speakButton.disabled = false;
+        };
+
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error("Failed to start speech recognition:", error);
+          alert("Failed to start speech recognition. Please try again.");
+          speakButton.textContent = "🎙 Speak";
+          speakButton.disabled = false;
+        }
+      }
+
+      function copyText() {
+        const text = document.getElementById("summary").innerText;
+        navigator.clipboard.writeText(text);
+        alert("Copied!");
+      }
+
+      let isTranslatedToBangla = false;
+      let originalText = "";
+
+      function toggleTranslation() {
+        const summaryElement = document.getElementById("summary");
+        const translateBtn = document.getElementById("translateBtn");
+
+        if (!isTranslatedToBangla) {
+          // Store original text and translate to Bangla
+          originalText = summaryElement.innerText;
+          const englishText = originalText;
+
+          fetch("/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: englishText }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              summaryElement.innerText = data.translated;
+              translateBtn.textContent = "🌐 Translate to English";
+              isTranslatedToBangla = true;
+            })
+            .catch(() => alert("Translation failed."));
+        } else {
+          // Restore original English text
+          summaryElement.innerText = originalText;
+          translateBtn.textContent = "🌐 Translate to Bangla";
+          isTranslatedToBangla = false;
+        }
+      }
+
+      // Dark mode toggle and label update
+      const toggle = document.getElementById("darkToggle");
+      const toggleLabel = document.getElementById("toggleLabel");
+
+      function updateToggleLabel(isDark) {
+        toggleLabel.textContent = isDark ? "Light Mode" : "Dark Mode";
+      }
+
+      toggle.addEventListener("change", () => {
+        document.body.classList.toggle("dark", toggle.checked);
+        localStorage.setItem("darkMode", toggle.checked);
+        updateToggleLabel(toggle.checked);
+      });
+
+      window.onload = () => {
+        const darkMode = localStorage.getItem("darkMode") === "true";
+        document.body.classList.toggle("dark", darkMode);
+        toggle.checked = darkMode;
+        updateToggleLabel(darkMode);
+      };
+
+      document.querySelector("form").addEventListener("submit", () => {
+        document.getElementById("loading").style.display = "block";
+      });
+    </script>
+  </body>
+</html>
